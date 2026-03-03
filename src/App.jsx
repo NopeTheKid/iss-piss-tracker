@@ -113,6 +113,10 @@ function App() {
   return (
     <div className="App">
       <h1>ISS Urine Tank Monitor</h1>
+      <p style={{ maxWidth: '600px', margin: '0 auto 1.5rem', lineHeight: '1.5', color: '#ccc' }}>
+        This application displays real-time telemetric data for the International Space Station's Urine Processor Assembly (UPA). 
+        Monitor the current urine tank storage level and view historical trends to track the system's status and processing cycles.
+      </p>
       <div className="status-bar">
         <h3>Status: {connectionStatus}</h3>
         {lastUpdate && <p>Last Update: {lastUpdate}</p>}
