@@ -1,6 +1,6 @@
 # ISS Urine Tank Monitor
 
-An interactivereact web application that displays real-time telemetry from the International Space Station, specifically visualizing the **Urine Tank Quantity** level using a beaker component.
+An interactive react web application that displays real-time telemetry from the International Space Station, specifically visualizing the **Urine Tank Quantity** level using a beaker component.
 
 ## Data Source
 
