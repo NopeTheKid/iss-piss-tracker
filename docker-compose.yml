@@ -1,0 +1,20 @@
+services:
+  iss-piss-tracker:
+    build: .
+    image: iss-piss-tracker:latest
+    container_name: iss-piss-tracker
+    ports:
+      - "33122:80"
+    restart: always
+    depends_on:
+      - backend
+
+  backend:
+    build: ./backend
+    image: iss-piss-backend:latest
+    container_name: iss-piss-backend
+    environment:
+      - DB_PATH=/data/readings.db
+    volumes:
+      - ./data:/data
+    restart: always

@@ -1,0 +1,17 @@
+{
+  "NODE3000004": {
+    "name": "Urine Processor Assembly State",
+    "mappings": {
+      "0": "INIT",
+      "1": "STOP",
+      "2": "SHUTDOWN",
+      "3": "STANDBY",
+      "4": "PROCESS",
+      "5": "HOT SERVICE",
+      "6": "FLUSH",
+      "7": "WARM SHUTDOWN",
+      "8": "NORMAL"
+    },
+    "note": "Derived from similar Water Processor (NODE3000006) states. 'NORMAL' is a confirmed observed value."
+  }
+}
