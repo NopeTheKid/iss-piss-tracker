@@ -32,7 +32,8 @@ const getUpaDescription = (val) => {
 };
 
 const CustomDot = (props) => {
-  const { cx, cy, payload } = props;
+  const { cx, cy, payload, value } = props;
+  if (value == null) return null;
   const rawState = payload.upaState || payload.wpa_state || "Unknown";
   const stateDesc = getUpaDescription(rawState);
   const fill = upaColors[stateDesc] || "#888888";
@@ -53,13 +54,18 @@ function App() {
   
   const formatTime = (ts) => {
     try {
-      // Check if ts is already a local time string (from old backend logic)
-      if (typeof ts === 'string' && ts.includes(':') && !ts.includes('T')) return ts;
       // Try to parse ISO string
       const date = new Date(ts);
       if (!isNaN(date.getTime())) {
-        return date.toLocaleTimeString();
+        return date.toLocaleString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        });
       }
+      // Check if ts is already a local time string (fallback)
+      if (typeof ts === 'string' && ts.includes(':') && !ts.includes('T')) return ts;
       return ts;
     } catch (e) {
       return ts;
@@ -73,11 +79,14 @@ function App() {
         .then(res => {
            const data = res.data;
            if (data && Array.isArray(data)) {
-             // Format history times for the graph
-             const formattedData = data.map(point => ({
-               ...point,
-               time: formatTime(point.time)
-             }));
+             const formattedData = data.map(point => {
+               const rTime = new Date(point.time).getTime();
+               return {
+                 ...point,
+                 time: formatTime(point.time),
+                 rawTime: isNaN(rTime) ? 0 : rTime
+               };
+             });
              setHistory(formattedData);
              setConnectionStatus("Connected");
              
@@ -103,6 +112,26 @@ function App() {
 
     return () => clearInterval(interval);
   }, [])
+
+  let currentSegment = 0;
+  const processedHistory = history.map(p => ({ ...p }));
+  
+  if (processedHistory.length > 0) {
+    for (let i = 0; i < processedHistory.length; i++) {
+      const current = processedHistory[i];
+      current[`value_solid_${currentSegment}`] = current.value;
+      
+      if (i < processedHistory.length - 1) {
+        const next = processedHistory[i+1];
+        if (next.rawTime - current.rawTime > 3600000) { // > 1 hour
+          current[`value_dashed_${currentSegment}`] = current.value;
+          next[`value_dashed_${currentSegment}`] = next.value;
+          currentSegment++;
+        }
+      }
+    }
+  }
+  const totalSegments = processedHistory.length > 0 ? currentSegment + 1 : 0;
 
   return (
     <div className="App">
@@ -168,7 +197,7 @@ function App() {
           
           <div style={{ width: '100%', height: '300px' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={history}>
+              <LineChart data={processedHistory}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#444" />
                 <XAxis 
                   dataKey="time" 
@@ -183,23 +212,46 @@ function App() {
                   unit="%"
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#222', border: '1px solid #555', color: '#fff' }}
-                  itemStyle={{ color: '#ffdd33' }}
-                  // Format tooltip to show WPA state
-                  formatter={(value, name, props) => {
-                    const rawState = props.payload.wpa_state || props.payload.wpaState || "Unknown";
-                    const stateDesc = getUpaDescription(rawState);
-                    return [value + '%', `Urine Qty (${stateDesc})`];
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const data = payload[0].payload;
+                      const rawState = data.wpa_state || data.wpaState || "Unknown";
+                      const stateDesc = getUpaDescription(rawState);
+                      return (
+                        <div style={{ backgroundColor: '#222', border: '1px solid #555', color: '#fff', padding: '10px' }}>
+                          <p style={{ margin: '0 0 5px 0' }}>{label}</p>
+                          <p style={{ margin: 0, color: '#ffdd33' }}>
+                            Urine Qty ({stateDesc}): {data.value}%
+                          </p>
+                        </div>
+                      );
+                    }
+                    return null;
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#ffdd33" 
-                  strokeWidth={2} 
-                  dot={<CustomDot />} // Use custom colored dot
-                  isAnimationActive={false}
-                />
+                {Array.from({ length: totalSegments }).map((_, idx) => (
+                  <g key={idx}>
+                    <Line 
+                      type="monotone" 
+                      dataKey={`value_solid_${idx}`} 
+                      stroke="#ffdd33" 
+                      strokeWidth={2} 
+                      dot={<CustomDot />} 
+                      activeDot={true}
+                      isAnimationActive={false}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey={`value_dashed_${idx}`} 
+                      stroke="#ffdd33" 
+                      strokeWidth={2} 
+                      strokeDasharray="5 5"
+                      dot={false} 
+                      activeDot={false}
+                      isAnimationActive={false}
+                    />
+                  </g>
+                ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
