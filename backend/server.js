@@ -97,17 +97,13 @@ let lastLoggedUpaState = null;
 let lastLoggedUrineLevel = null;
 
 const upaStateMap = {
-    "0": "INIT", 
-    "1": "STOP",
-    "2": "SHUTDOWN",
-    "3": "STANDBY",
-    "4": "PROCESS",
-    "5": "HOT SERVICE",
-    "6": "FLUSH",
-    "7": "WARM SHUTDOWN",
-    "8": "NORMAL",
-    "13": "UPA PROCESS",
-    "32": "PROCESSING"
+    "2": "STOP",
+    "4": "SHUTDOWN",
+    "8": "MAINTENANCE",
+    "16": "NORMAL",
+    "32": "STANDBY",
+    "64": "IDLE",
+    "128": "SYSTEM INITIALIZED"
 };
 
 // NODE3000004 is Urine Processor Assembly State
@@ -118,9 +114,9 @@ sub.addListener({
         const val = update.getValue("Value");
 
         if (item === "NODE3000004") {
+            currentUpaState = val;
             const mappedState = upaStateMap[String(val)] || val;
-            currentUpaState = mappedState;
-            console.log("UPA State Updated in memory:", currentUpaState);
+            console.log("UPA State Updated in memory:", mappedState, `(Raw: ${val})`);
         } else if (item === "NODE3000005") {
             const numericVal = parseFloat(val);
             if (!isNaN(numericVal)) {

@@ -4,34 +4,28 @@ import Beaker from './components/Beaker.jsx'
 import './App.css'
 
 const upaColors = {
-  "PROCESS": "#00ff00",       // Green
-  "UPA PROCESS": "#00ff00",   // Green
+  "SYSTEM INITIALIZED": "#00aaff", // Blue
   "NORMAL": "#00ff00",        // Green
-  "PROCESSING": "#00ff00",    // Green (Assuming normal operation)
+  "IDLE": "#00ff00",          // Green
   "STANDBY": "#ffff00",       // Yellow
+  "MAINTENANCE": "#ff8800",   // Orange
   "STOP": "#ff0000",          // Red
   "SHUTDOWN": "#555555",      // Grey
-  "HOT SERVICE": "#ff8800",   // Orange
-  "FLUSH": "#00aaff",         // Blue
-  "WARM SHUTDOWN": "#aa5500", // Brown
   "Unknown": "#888888"
+};
+
+export const upaStates = {
+  "2": "STOP",
+  "4": "SHUTDOWN",
+  "8": "MAINTENANCE",
+  "16": "NORMAL",
+  "32": "STANDBY",
+  "64": "IDLE",
+  "128": "SYSTEM INITIALIZED"
 };
 
 // UPA State Mapping Helper
 const getUpaDescription = (val) => {
-  const upaStates = {
-    "0": "INIT", 
-    "1": "STOP",
-    "2": "SHUTDOWN",
-    "3": "STANDBY",
-    "4": "PROCESS",
-    "5": "HOT SERVICE",
-    "6": "FLUSH",
-    "7": "WARM SHUTDOWN",
-    "8": "NORMAL",
-    "13": "UPA PROCESS",
-    "32": "PROCESSING"
-  };
   // If the stored value is already a description (e.g. from DB), return it as is.
   // Otherwise, try to map the numeric code.
   return upaStates[String(val)] || val;
@@ -140,7 +134,9 @@ function App() {
           border: '1px solid rgba(255, 255, 255, 0.2)'
         }}>
           <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', color: '#ccc' }}>Urine Processor State (NODE3000004)</h3>
-          <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ffdd33' }}>{upaState}</span>
+          <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#ffdd33' }}>
+            {getUpaDescription(upaState)}
+          </span>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'stretch' }}>
