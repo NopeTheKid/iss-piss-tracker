@@ -149,11 +149,11 @@ function App() {
         display: 'flex', 
         flexDirection: 'column', 
         alignItems: 'center', 
-        gap: '2rem',
+        gap: '1.5rem',
         width: '100%',
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '0 1rem'
+        padding: '0'
       }}>
         <div className="wpa-state" style={{ 
           background: 'rgba(255, 255, 255, 0.1)', 
@@ -172,7 +172,7 @@ function App() {
           
           <div style={{ 
             flex: '1 1 400px',
-            minWidth: '300px',
+            minWidth: '250px',
             padding: '1rem',
             background: 'rgba(255,255,255,0.05)',
             borderRadius: '8px',
@@ -186,7 +186,7 @@ function App() {
           {/* Chart Card */}
           <div style={{ 
             flex: '1 1 400px', 
-            minWidth: '300px', 
+            minWidth: '250px', 
             padding: '1rem', 
             background: 'rgba(255,255,255,0.05)', 
             borderRadius: '8px', 
