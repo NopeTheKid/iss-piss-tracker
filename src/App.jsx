@@ -39,8 +39,11 @@ const CustomDot = (props) => {
   const fill = upaColors[stateDesc] || "#888888";
 
   return (
-    <svg x={cx - 5} y={cy - 5} width={10} height={10} fill={fill}>
-        <circle cx="5" cy="5" r="5" />
+    <svg x={cx - 5} y={cy - 5} width={10} height={10} style={{ overflow: 'visible' }}>
+      {payload.isGapBoundary && (
+        <line x1="5" y1="-1000" x2="5" y2="1000" stroke="#ffffff" strokeDasharray="4 4" strokeWidth={1} opacity={0.5} />
+      )}
+      <circle cx="5" cy="5" r="5" fill={fill} />
     </svg>
   );
 };
@@ -51,7 +54,7 @@ function App() {
   const [connectionStatus, setConnectionStatus] = useState('Disconnected')
   const [lastUpdate, setLastUpdate] = useState(null)
   const [history, setHistory] = useState([]);
-  
+
   const formatTime = (ts) => {
     try {
       // Try to parse ISO string
@@ -77,26 +80,26 @@ function App() {
       fetch('/api/history')
         .then(res => res.json())
         .then(res => {
-           const data = res.data;
-           if (data && Array.isArray(data)) {
-             const formattedData = data.map(point => {
-               const rTime = new Date(point.time).getTime();
-               return {
-                 ...point,
-                 time: formatTime(point.time),
-                 rawTime: isNaN(rTime) ? 0 : rTime
-               };
-             });
-             setHistory(formattedData);
-             setConnectionStatus("Connected");
-             
-             if (formattedData.length > 0) {
-               const last = formattedData[formattedData.length - 1];
-               if (last && last.value) setUrineLevel(last.value);
-               if (last && last.time) setLastUpdate(last.time);
-               if (last && last.wpa_state) setUpaState(last.wpa_state);
-             }
-           }
+          const data = res.data;
+          if (data && Array.isArray(data)) {
+            const formattedData = data.map(point => {
+              const rTime = new Date(point.time).getTime();
+              return {
+                ...point,
+                time: formatTime(point.time),
+                rawTime: isNaN(rTime) ? 0 : rTime
+              };
+            });
+            setHistory(formattedData);
+            setConnectionStatus("Connected");
+
+            if (formattedData.length > 0) {
+              const last = formattedData[formattedData.length - 1];
+              if (last && last.value) setUrineLevel(last.value);
+              if (last && last.time) setLastUpdate(last.time);
+              if (last && last.wpa_state) setUpaState(last.wpa_state);
+            }
+          }
         })
         .catch(err => {
           console.error("Failed to fetch history:", err);
@@ -115,18 +118,21 @@ function App() {
 
   let currentSegment = 0;
   const processedHistory = history.map(p => ({ ...p }));
-  
+  const gapTimes = [];
+
   if (processedHistory.length > 0) {
     for (let i = 0; i < processedHistory.length; i++) {
       const current = processedHistory[i];
       current[`value_solid_${currentSegment}`] = current.value;
-      
+
       if (i < processedHistory.length - 1) {
-        const next = processedHistory[i+1];
+        const next = processedHistory[i + 1];
         if (next.rawTime - current.rawTime > 3600000) { // > 1 hour
           current[`value_dashed_${currentSegment}`] = current.value;
           next[`value_dashed_${currentSegment}`] = next.value;
           currentSegment++;
+          current.isGapBoundary = true;
+          next.isGapBoundary = true;
         }
       }
     }
@@ -137,28 +143,28 @@ function App() {
     <div className="App">
       <h1>ISS Urine Tank Monitor</h1>
       <p style={{ maxWidth: '600px', margin: '0 auto 1.5rem', lineHeight: '1.5', color: '#ccc' }}>
-        This application displays real-time telemetric data for the International Space Station's Urine Processor Assembly (UPA). 
+        This application displays real-time telemetric data for the International Space Station's Urine Processor Assembly (UPA).
         Monitor the current urine tank storage level and view historical trends to track the system's status and processing cycles.
       </p>
       <div className="status-bar">
         <h3>Status: {connectionStatus}</h3>
         {lastUpdate && <p>Last Update: {lastUpdate}</p>}
       </div>
-      
+
       <div className="dashboard" style={{
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
         gap: '1.5rem',
         width: '100%',
         maxWidth: '1200px',
         margin: '0 auto',
         padding: '0'
       }}>
-        <div className="wpa-state" style={{ 
-          background: 'rgba(255, 255, 255, 0.1)', 
-          padding: '1rem', 
-          borderRadius: '8px', 
+        <div className="wpa-state" style={{
+          background: 'rgba(255, 255, 255, 0.1)',
+          padding: '1rem',
+          borderRadius: '8px',
           textAlign: 'center',
           border: '1px solid rgba(255, 255, 255, 0.2)'
         }}>
@@ -169,8 +175,8 @@ function App() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'row', width: '100%', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'stretch' }}>
-          
-          <div style={{ 
+
+          <div style={{
             flex: '1 1 400px',
             minWidth: '250px',
             padding: '1rem',
@@ -182,93 +188,99 @@ function App() {
           }}>
             <Beaker level={urineLevel} label="Urine Tank Qty (NODE3000005)" />
           </div>
-  
-          {/* Chart Card */}
-          <div style={{ 
-            flex: '1 1 400px', 
-            minWidth: '250px', 
-            padding: '1rem', 
-            background: 'rgba(255,255,255,0.05)', 
-            borderRadius: '8px', 
-            display: 'flex', 
-            flexDirection: 'column' 
-          }}>
-          <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>History (Last 50 Updates)</h3>
-          
-          <div style={{ width: '100%', height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={processedHistory}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-                <XAxis 
-                  dataKey="time" 
-                  stroke="#888" 
-                  tick={{ fill: '#888', fontSize: 12 }}
-                  interval="preserveStartEnd"
-                />
-                <YAxis 
-                  domain={[0, 100]} 
-                  stroke="#888" 
-                  tick={{ fill: '#888' }} 
-                  unit="%"
-                />
-                <Tooltip 
-                  content={({ active, payload, label }) => {
-                    if (active && payload && payload.length) {
-                      const data = payload[0].payload;
-                      const rawState = data.wpa_state || data.wpaState || "Unknown";
-                      const stateDesc = getUpaDescription(rawState);
-                      return (
-                        <div style={{ backgroundColor: '#222', border: '1px solid #555', color: '#fff', padding: '10px' }}>
-                          <p style={{ margin: '0 0 5px 0' }}>{label}</p>
-                          <p style={{ margin: 0, color: '#ffdd33' }}>
-                            Urine Qty ({stateDesc}): {data.value}%
-                          </p>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                {Array.from({ length: totalSegments }).map((_, idx) => (
-                  <g key={idx}>
-                    <Line 
-                      type="monotone" 
-                      dataKey={`value_solid_${idx}`} 
-                      stroke="#ffdd33" 
-                      strokeWidth={2} 
-                      dot={<CustomDot />} 
-                      activeDot={true}
-                      isAnimationActive={false}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey={`value_dashed_${idx}`} 
-                      stroke="#ffdd33" 
-                      strokeWidth={2} 
-                      strokeDasharray="5 5"
-                      dot={false} 
-                      activeDot={false}
-                      isAnimationActive={false}
-                    />
-                  </g>
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
 
-          {/* Color Legend */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px', marginTop: '10px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
-            {Object.entries(upaColors).map(([state, color]) => (
-              <div key={state} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{ width: 10, height: 10, backgroundColor: color, borderRadius: '50%' }}></div>
-                <span style={{ fontSize: '0.8rem', color: '#ccc' }}>{state}</span>
+          {/* Chart Card */}
+          <div style={{
+            flex: '1 1 400px',
+            minWidth: '250px',
+            padding: '1rem',
+            background: 'rgba(255,255,255,0.05)',
+            borderRadius: '8px',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <h3 style={{ textAlign: 'center', marginBottom: '1rem' }}>History (Last 50 Updates)</h3>
+
+            <div style={{ width: '100%', height: '300px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={processedHistory}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+                  <XAxis
+                    dataKey="time"
+                    stroke="#888"
+                    tick={{ fill: '#888', fontSize: 12 }}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    stroke="#888"
+                    tick={{ fill: '#888' }}
+                    unit="%"
+                  />
+                  <Tooltip
+                    content={({ active, payload, label }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        const rawState = data.wpa_state || data.wpaState || "Unknown";
+                        const stateDesc = getUpaDescription(rawState);
+                        return (
+                          <div style={{ backgroundColor: '#222', border: '1px solid #555', color: '#fff', padding: '10px' }}>
+                            <p style={{ margin: '0 0 5px 0' }}>{label}</p>
+                            <p style={{ margin: 0, color: '#ffdd33' }}>
+                              Urine Qty ({stateDesc}): {data.value}%
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  {Array.from({ length: totalSegments }).map((_, idx) => (
+                    <g key={idx}>
+                      <Line
+                        type="monotone"
+                        dataKey={`value_solid_${idx}`}
+                        stroke="#ffdd33"
+                        strokeWidth={2}
+                        dot={<CustomDot />}
+                        activeDot={true}
+                        isAnimationActive={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey={`value_dashed_${idx}`}
+                        stroke="#ffdd33"
+                        strokeWidth={2}
+                        strokeDasharray="5 5"
+                        dot={false}
+                        activeDot={false}
+                        isAnimationActive={false}
+                      />
+                    </g>
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Color Legend */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '15px', marginTop: '10px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
+              {Object.entries(upaColors).map(([state, color]) => (
+                <div key={state} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ width: 10, height: 10, backgroundColor: color, borderRadius: '50%' }}></div>
+                  <span style={{ fontSize: '0.8rem', color: '#ccc' }}>{state}</span>
+                </div>
+              ))}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '10px', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: '15px' }}>
+                <svg width="10" height="14">
+                  <line x1="5" y1="0" x2="5" y2="14" stroke="#ffffff" strokeDasharray="3 3" strokeWidth={2} opacity={0.6} />
+                </svg>
+                <span style={{ fontSize: '0.8rem', color: '#ccc' }}>Data Gap (&gt;1h)</span>
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
   )
 }
 
