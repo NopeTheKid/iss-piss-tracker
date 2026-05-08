@@ -38,10 +38,16 @@ const CustomDot = (props) => {
   const stateDesc = getUpaDescription(rawState);
   const fill = upaColors[stateDesc] || "#888888";
 
+  // The chart height is 300px. Default margins are top: 5, bottom: 5. XAxis height is 30.
+  // This means the drawing area is roughly from absolute y=5 to absolute y=265.
+  // Since the inner svg is at y={cy - 5}, we calculate the relative y1 and y2.
+  const y1 = 10 - cy;
+  const y2 = 270 - cy;
+
   return (
     <svg x={cx - 5} y={cy - 5} width={10} height={10} style={{ overflow: 'visible' }}>
       {payload.isGapBoundary && (
-        <line x1="5" y1="-1000" x2="5" y2="1000" stroke="#ffffff" strokeDasharray="4 4" strokeWidth={1} opacity={0.5} />
+        <line x1="5" y1={y1} x2="5" y2={y2} stroke="#ffffff" strokeDasharray="4 4" strokeWidth={1} opacity={0.5} />
       )}
       <circle cx="5" cy="5" r="5" fill={fill} />
     </svg>
